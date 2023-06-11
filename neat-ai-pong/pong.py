@@ -7,13 +7,58 @@ import pickle
 
 class PongGame:
     def __init__(self, window, width, height):
+        self.window = window
+        self.width = width
+        self.height = height
         self.game = Game(window, width, height)
         self.left_paddle = self.game.left_paddle
         self.right_paddle = self.game.right_paddle
         self.ball = self.game.ball
 
+    def draw_countdown(self, countdown):
+        font = pygame.font.Font(None, 74)
+        text = font.render(str(countdown), 1, (255, 255, 255))
+        self.window.blit(
+            text,
+            (
+                self.width // 2 - text.get_width() // 2,
+                self.height // 2 - text.get_height() // 2,
+            ),
+        )
+        pygame.display.update()
+
+    def draw_break_screen(self, winner):
+        self.window.fill((0, 0, 0))
+        font = pygame.font.Font(None, 74)
+        text = font.render(f"Player {winner} won!", 1, (255, 255, 255))
+        self.window.blit(
+            text,
+            (
+                self.width // 2 - text.get_width() // 2,
+                self.height // 2 - text.get_height() // 2,
+            ),
+        )
+
+        font = pygame.font.Font(None, 36)
+        text = font.render("Press 1 for a new game, 2 to exit", 1, (255, 255, 255))
+        self.window.blit(
+            text,
+            (
+                self.width // 2 - text.get_width() // 2,
+                self.height // 2 - text.get_height() // 2 + 100,
+            ),
+        )
+        pygame.display.update()
+
     def test_ai(self, genome, config):
         net = neat.nn.FeedForwardNetwork.create(genome, config)
+
+        countdown = 5
+        while countdown > 0:
+            self.window.fill((0, 0, 0))
+            self.draw_countdown(countdown)
+            pygame.time.delay(1000)  # delay for 1 second
+            countdown -= 1
 
         run = True
         clock = pygame.time.Clock()
@@ -49,6 +94,34 @@ class PongGame:
             game_info = self.game.loop()
             self.game.draw(True, False)
             pygame.display.update()
+
+            if game_info.left_score >= 10 or game_info.right_score >= 10:
+                winner = "Left" if game_info.left_score >= 10 else "Right"
+                self.draw_break_screen(winner)
+
+                pygame.time.delay(1000)  # delay for 1 second
+
+                running_break_screen = True
+                while running_break_screen:
+                    for event in pygame.event.get():
+                        if event.type == pygame.QUIT:
+                            running_break_screen = False
+                            run = False
+                            break
+                        elif event.type == pygame.KEYDOWN:
+                            if event.key == pygame.K_1:
+                                # reset game state and start a new game
+                                self.game.reset()
+                                countdown = 5
+                                while countdown > 0:
+                                    self.window.fill((0, 0, 0))
+                                    self.draw_countdown(countdown)
+                                    pygame.time.delay(1000)  # delay for 1 second
+                                    countdown -= 1
+                                running_break_screen = False
+                            elif event.key == pygame.K_2:
+                                running_break_screen = False
+                                run = False
 
         pygame.quit()
 
